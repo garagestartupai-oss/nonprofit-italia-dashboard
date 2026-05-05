@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Nonprofit Italia Dashboard",
+  "schemaVersion": 1,
+  "description": "Dashboard no-profit Italia con dati regionali corretti da italianonprofit.it (top 8 confermati) + settori ICNPO + KPI RUNTS 2026."
+}
+</script>
+<html lang="it">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>No-Profit Italia — Dashboard RUNTS 2026</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --pink: #F90064;
+    --teal: #00516D;
+    --dark: #353535;
+    --light: #F7F7F7;
+    --white: #FFFFFF;
+    --border: #E0E0E0;
+    --muted: #7A8A95;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--light);
+    color: var(--dark);
+    min-height: 100vh;
+  }
+  header {
+    background: var(--teal);
+    color: white;
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-left h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .header-left p {
+    font-size: 12px;
+    opacity: 0.75;
+    margin-top: 3px;
+  }
+  .badge {
+    background: var(--pink);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.3px;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 20px;
+  }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .kpi-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+  }
+  .kpi-card .label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .kpi-card .value {
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-top: 6px;
+    color: var(--teal);
+  }
+  .kpi-card .value.pink { color: var(--pink); }
+  .kpi-card .sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* FILTER BAR */
+  .filter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-bar span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-right: 4px;
+  }
+  .filter-btn {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--white);
+    color: var(--dark);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { border-color: var(--teal); color: var(--teal); }
+  .filter-btn.active { background: var(--teal); color: white; border-color: var(--teal); }
+
+  /* CHARTS GRID */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 720px) {
+    .charts-grid { grid-template-columns: 1fr; }
+  }
+  .chart-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 22px;
+    border: 1px solid var(--border);
+  }
+  .chart-card h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 4px;
+  }
+  .chart-card .chart-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+  .chart-wrap {
+    position: relative;
+  }
+
+  /* BOTTOM ROW */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 720px) {
+    .bottom-grid { grid-template-columns: 1fr; }
+  }
+
+  /* TOP REGIONS TABLE */
+  .top-list {
+    list-style: none;
+  }
+  .top-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .top-list li:last-child { border-bottom: none; }
+  .top-list .rank {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--muted);
+    width: 20px;
+    text-align: center;
+  }
+  .top-list .region-name {
+    flex: 1;
+    font-weight: 500;
+  }
+  .top-list .region-count {
+    font-weight: 700;
+    color: var(--teal);
+    font-size: 13px;
+  }
+  .top-list .bar-bg {
+    width: 80px;
+    height: 6px;
+    background: #EEF2F4;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .top-list .bar-fill {
+    height: 100%;
+    background: var(--teal);
+    border-radius: 3px;
+  }
+
+  /* INSIGHT BOX */
+  .insight-card {
+    background: var(--teal);
+    color: white;
+    border-radius: 12px;
+    padding: 22px;
+  }
+  .insight-card h2 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    opacity: 0.9;
+  }
+  .insight-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    align-items: flex-start;
+  }
+  .insight-item .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pink);
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+  .insight-item p {
+    font-size: 13px;
+    line-height: 1.5;
+    opacity: 0.9;
+  }
+  .insight-item strong { opacity: 1; }
+
+  footer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 20px;
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>No-Profit Italia — Analisi RUNTS</h1>
+    <p>Distribuzione geografica e settori di attività · Fonte: RUNTS / ISTAT 2026</p>
+  </div>
+  <span class="badge">ORDINARY HEROES</span>
+</header>
+
+<div class="container">
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="label">ETS Registrati</div>
+      <div class="value">136.000+</div>
+      <div class="sub">al Registro Unico Nazionale</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Digitalizzati</div>
+      <div class="value pink">33%</div>
+      <div class="sub">Solo 1 su 3 ha presenza digitale</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Volontari attivi</div>
+      <div class="value">5,5 mln</div>
+      <div class="sub">in Italia (ISTAT 2024)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Senza pers. giuridica</div>
+      <div class="value pink">77%</div>
+      <div class="sub">esposizione patrimoniale soci</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Entrate totali settore</div>
+      <div class="value">67 mld€</div>
+      <div class="sub">contributo al PIL nazionale</div>
+    </div>
+  </div>
+
+  <!-- FILTER -->
+  <div class="filter-bar">
+    <span>Filtra:</span>
+    <button class="filter-btn active" onclick="filterArea('all', this)">Tutta Italia</button>
+    <button class="filter-btn" onclick="filterArea('nord', this)">Nord</button>
+    <button class="filter-btn" onclick="filterArea('centro', this)">Centro</button>
+    <button class="filter-btn" onclick="filterArea('sud', this)">Sud &amp; Isole</button>
+  </div>
+
+  <!-- MAIN CHARTS -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h2>Distribuzione per Regione</h2>
+      <div class="chart-sub">ETS iscritti al RUNTS — dati 2026 &nbsp;·&nbsp; <span style="color:#00516D;font-weight:700">■</span> confermati da italianonprofit.it &nbsp;<span style="color:#B0C4CC;font-weight:700">■</span> stimati</div>
+      <div class="chart-wrap" id="regionChartWrap">
+        <canvas id="regionChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h2>Settori di Attività</h2>
+      <div class="chart-sub">% sul totale ETS nazionali</div>
+      <div class="chart-wrap" style="height:320px">
+        <canvas id="sectorChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM ROW -->
+  <div class="bottom-grid">
+    <div class="chart-card">
+      <h2>Top 8 Regioni</h2>
+      <div class="chart-sub">per numero di organizzazioni registrate</div>
+      <ul class="top-list" id="topList"></ul>
+    </div>
+    <div class="insight-card">
+      <h2>💡 Insight chiave per Ordinary Heroes</h2>
+      <div class="insight-item">
+        <div class="dot"></div>
+        <p><strong>Lombardia domina</strong> con ~18.900 ETS — mercato prioritario per l'acquisizione aziende e organizzazioni.</p>
+      </div>
+      <div class="insight-item">
+        <div class="dot"></div>
+        <p><strong>Sud sottorappresentato</strong> digitalmente ma con alta densità di ODV. Alto potenziale di crescita non catturato.</p>
+      </div>
+      <div class="insight-item">
+        <div class="dot"></div>
+        <p><strong>Sport &amp; Cultura = 51%</strong> del totale. Segmento con donor base giovane e abituata alle app di loyalty.</p>
+      </div>
+      <div class="insight-item">
+        <div class="dot"></div>
+        <p><strong>77% senza personalità giuridica</strong>: la trasparenza è urgente. Ordinary Heroes risponde esattamente a questo bisogno.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Dati elaborati da RUNTS (Registro Unico Nazionale del Terzo Settore) · ISTAT Censimento No-Profit 2024 · Ordinary Heroes — ordinaryheroes.it
+</footer>
+
+<script>
+// ✅ Dati confermati = da italianonprofit.it/data-hub (screenshot utente, maggio 2026)
+// ⚠️  Dati stimati = proporzionali al totale RUNTS ~136.000
+const REGIONS = {
+  all: [
+    { name: "Lombardia",           value: 18900, area: "nord",   confirmed: true  },
+    { name: "Veneto",              value: 12800, area: "nord",   confirmed: true  },
+    { name: "Emilia-Romagna",      value: 11900, area: "nord",   confirmed: true  },
+    { name: "Lazio",               value: 11700, area: "centro", confirmed: true  },
+    { name: "Toscana",             value: 10900, area: "centro", confirmed: true  },
+    { name: "Piemonte",            value: 10600, area: "nord",   confirmed: true  },
+    { name: "Sicilia",             value: 9100,  area: "sud",    confirmed: true  },
+    { name: "Campania",            value: 8500,  area: "sud",    confirmed: true  },
+    { name: "Puglia",              value: 6000,  area: "sud",    confirmed: false },
+    { name: "Sardegna",            value: 4500,  area: "sud",    confirmed: false },
+    { name: "Calabria",            value: 4000,  area: "sud",    confirmed: false },
+    { name: "Friuli-V.G.",         value: 4000,  area: "nord",   confirmed: false },
+    { name: "Marche",              value: 3800,  area: "centro", confirmed: false },
+    { name: "Liguria",             value: 3500,  area: "nord",   confirmed: false },
+    { name: "Abruzzo",             value: 3400,  area: "sud",    confirmed: false },
+    { name: "Trentino-A.A.",       value: 3300,  area: "nord",   confirmed: false },
+    { name: "Umbria",              value: 2500,  area: "centro", confirmed: false },
+    { name: "Basilicata",          value: 2200,  area: "sud",    confirmed: false },
+    { name: "Molise",              value: 1400,  area: "sud",    confirmed: false },
+    { name: "Valle d'Aosta",       value: 600,   area: "nord",   confirmed: false },
+  ]
+};
+
+const SECTORS = [
+  { label: "Sport & Ricreazione", value: 34, color: "#00516D" },
+  { label: "Cultura & Arte",      value: 17, color: "#F90064" },
+  { label: "Sociale & Assistenza",value: 15, color: "#1a7a9a" },
+  { label: "Sanità",              value: 8,  color: "#e05080" },
+  { label: "Religioso",           value: 7,  color: "#4a9ab5" },
+  { label: "Ambiente",            value: 5,  color: "#006b48" },
+  { label: "Educazione",          value: 5,  color: "#c94070" },
+  { label: "Cooperazione intl.",  value: 3,  color: "#7abdd0" },
+  { label: "Altro",               value: 6,  color: "#B0C4CC" },
+];
+
+// ---- REGION CHART ----
+const regionCtx = document.getElementById('regionChart').getContext('2d');
+let regionChart;
+
+function buildRegionChart(data) {
+  const labels = data.map(d => d.name);
+  const values = data.map(d => d.value);
+  const max = Math.max(...values);
+  const colors = data.map(d => d.confirmed ? (d.value === max ? '#F90064' : '#00516D') : '#B0C4CC');
+
+  // Dynamic height: 34px per bar, minimum 300px
+  const chartHeight = Math.max(300, data.length * 34);
+  document.getElementById('regionChartWrap').style.height = chartHeight + 'px';
+
+  if (regionChart) regionChart.destroy();
+
+  regionChart = new Chart(regionCtx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: colors,
+        borderRadius: 5,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.x.toLocaleString('it-IT')} ETS`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#F0F0F0' },
+          ticks: { font: { size: 11 }, color: '#7A8A95' }
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 11 }, color: '#353535' }
+        }
+      }
+    }
+  });
+}
+
+// ---- SECTOR CHART ----
+const sectorCtx = document.getElementById('sectorChart').getContext('2d');
+new Chart(sectorCtx, {
+  type: 'doughnut',
+  data: {
+    labels: SECTORS.map(s => s.label),
+    datasets: [{
+      data: SECTORS.map(s => s.value),
+      backgroundColor: SECTORS.map(s => s.color),
+      borderWidth: 2,
+      borderColor: '#FFFFFF',
+      hoverOffset: 6,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: {
+          font: { size: 11 },
+          color: '#353535',
+          boxWidth: 12,
+          padding: 10,
+        }
+      },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed}%`
+        }
+      }
+    }
+  }
+});
+
+// ---- TOP LIST ----
+function buildTopList(data) {
+  const sorted = [...data].sort((a, b) => b.value - a.value).slice(0, 8);
+  const max = sorted[0].value;
+  const ul = document.getElementById('topList');
+  ul.innerHTML = sorted.map((r, i) => `
+    <li>
+      <span class="rank">${i + 1}</span>
+      <span class="region-name">${r.name}</span>
+      <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(r.value/max*100)}%"></div></div>
+      <span class="region-count">${r.value.toLocaleString('it-IT')}</span>
+    </li>
+  `).join('');
+}
+
+// ---- FILTER ----
+function filterArea(area, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const data = area === 'all'
+    ? REGIONS.all
+    : REGIONS.all.filter(r => r.area === area);
+  buildRegionChart(data);
+  buildTopList(data);
+}
+
+// init
+buildRegionChart(REGIONS.all);
+buildTopList(REGIONS.all);
+</script>
+</body>
+</html>
